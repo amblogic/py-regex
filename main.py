@@ -32,34 +32,61 @@ for contact in all_contacts:
             formatted_phone += f" доб.{match.group(8)}"
         contact[5] = formatted_phone
 
-# Создаем новый лист. Проверим на Совпадения по ФИ. По ДЗ 
-# считается что человек с одинаковым ФИ это один человек
+# Сделаем 2 прогона. Сначала сгруппируем тех у кого совпадение по ФИО
+# Затем объединим всех с полным ФИО и тех у кого отсутствует отчество
 new_list = {}
-merged=0
+merged = 0
 
+#1й  проход
 for contact in all_contacts:
-    #ключ для объединения
-    key_double = (contact[0], contact[1])
+    # ключ для объединения
+    key_double = (contact[0].lower(), contact[1].lower(), contact[2].lower())
 
     if key_double not in new_list:
         new_list[key_double] = contact
     else:
         # посчитаем сколько дублей нашлось.
-        merged+=1
+        merged += 1
         temp = new_list[key_double]
-        # не удаляем содержимое уже сохраненного. 
-        # (на случай если есть отчество, email, телефон и т.п.) 
+        # не удаляем содержимое уже сохраненного.
         # Просто добавляем из нового.
         for i in range(len(contact)):
             if temp[i] == "" and contact[i] != "":
                 temp[i] = contact[i]
 
 
-# Итоговый список
-result_list = [headers] + list(new_list.values())
+# создаем отдельный список контактов с полными ФИО
+fio_list = [contact for key, contact in new_list.items() if contact[2]]
 
-print(f"Всего обработано: {len(all_contacts)}. Объединено: {merged} дублей по Фамилии и Имени")
+for key, contact in new_list.items():
+    # отфильтруем только контакты без отчества
+    if contact[2]:
+        continue
+    else:
+        for fio_contact in fio_list:
+            if fio_contact[0] == contact[0] and fio_contact[1] == contact[1]:
+                # посчитаем сколько дублей нашлось по ФИ.
+                merged += 1
+                # не удаляем содержимое уже сохраненного.
+                # Просто добавляем из нового.
+                for i in range(len(fio_contact)):
+                    if fio_contact[i] == "" and contact[i] != "":
+                        fio_contact[i] = contact[i]
+                #если нашлось совпадение - останавливаем
+                break
+
+        else:
+            #т.к. не нашлось совпадений по ФИО добавим в результирующий список
+            fio_list.append(contact)
+
+
+# Итоговый список
+result_list = [headers] + fio_list
+
+print(
+    f"Всего обработано контактов: {len(all_contacts)}. Объединено: {merged} дублей по Фамилии Имени Отчеству"
+)
 # Сохраняем
 with open("phonebook_clean.csv", "w", encoding="utf-8", newline="") as f:
-  datawriter = csv.writer(f, delimiter=',')
-  datawriter.writerows(result_list)
+    datawriter = csv.writer(f, delimiter=",")
+    datawriter.writerows(result_list)
